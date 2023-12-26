@@ -26,7 +26,7 @@ import Foundation
 import PathKit
 import Rainbow
 
-enum FileType: Codable {
+enum FileType: String, Codable {
     case swift
     case objc
     case xib
