@@ -159,22 +159,31 @@ if unusedFiles.isEmpty {
 }
 
 if !isForce {
-    var result = promptResult(files: unusedFiles)
-    while result == .list {
+    if noPrompt {
+        let size = unusedFiles.reduce(0) { $0 + $1.size }.fn_readableSize
+        print("\(unusedFiles.count) unused files are found. Total size: \(size)".yellow.bold)
         for file in unusedFiles.sorted(by: { $0.size > $1.size }) {
             print("\(file.readableSize) \(file.path.string)")
         }
-        result = promptResult(files: unusedFiles)
-    }
-    
-    switch result {
-    case .list:
-        fatalError()
-    case .delete:
-        break
-    case .ignore:
-        print("Ignored. Nothing to do, bye!".green.bold)
         exit(EX_OK)
+    } else {
+        var result = promptResult(files: unusedFiles)
+        while result == .list {
+            for file in unusedFiles.sorted(by: { $0.size > $1.size }) {
+                print("\(file.readableSize) \(file.path.string)")
+            }
+            result = promptResult(files: unusedFiles)
+        }
+        
+        switch result {
+        case .list:
+            fatalError()
+        case .delete:
+            break
+        case .ignore:
+            print("Ignored. Nothing to do, bye!".green.bold)
+            exit(EX_OK)
+        }
     }
 }
 
