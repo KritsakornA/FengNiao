@@ -53,6 +53,16 @@ let projectPathOption = StringOption(
     helpMessage: "Root path of your Xcode project. Default is current folder.")
 cli.addOption(projectPathOption)
 
+let noPromptOption = BoolOption(
+    shortFlag: "np", longFlag: "no-prompt",
+    helpMessage: "Tell Fengniao not to prompt actions on search completion. If this flag is supplied, Fengniao will print out unused files and exit.")
+cli.addOption(noPromptOption)
+
+let searchRulesConfigPathOption = StringOption(
+    longFlag: "rules-config-path",
+    helpMessage: "Specify a path the your custom search rules stored within a template file.")
+cli.addOption(searchRulesConfigPathOption)
+
 let isForceOption = BoolOption(
     longFlag: "force",
     helpMessage: "Delete the found unused files without asking.")
@@ -111,6 +121,8 @@ if versionOption.value {
 
 
 let projectPath = projectPathOption.value ?? "."
+let noPrompt = noPromptOption.value
+let searchRulesConfigPath = searchRulesConfigPathOption.value ?? nil
 let isForce = isForceOption.value
 let excludePaths = excludePathOption.value ?? []
 let resourceExtentions = resourceExtOption.value ?? ["imageset", "jpg", "png", "gif", "pdf"]
