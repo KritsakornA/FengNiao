@@ -33,6 +33,19 @@ protocol RegPatternSearchRule: FileSearchRule {
     var patterns: [String] { get }
 }
 
+struct SearchRule: Codable {
+    let fileType: FileType
+    let patterns: [String]
+}
+
+struct SearchRuleConfig: Codable {
+    let rules: [SearchRule]
+    
+    func getRule(for fileType: FileType) -> SearchRule? {
+        rules.first { $0.fileType == fileType }
+    }
+}
+
 extension RegPatternSearchRule {
     func search(in content: String) -> Set<String> {
         
@@ -67,12 +80,26 @@ struct PlainImageSearchRule: RegPatternSearchRule {
 
 struct ObjCImageSearchRule: RegPatternSearchRule {
     let extensions: [String]
-    let patterns = ["@\"(.*?)\"", "\"(.*?)\""]
+    let patterns: [String]
+}
+
+extension ObjCImageSearchRule {
+    init(extensions: [String]) {
+        self.extensions = extensions
+        self.patterns = ["@\"(.*?)\"", "\"(.*?)\""]
+    }
 }
 
 struct SwiftImageSearchRule: RegPatternSearchRule {
     let extensions: [String]
-    let patterns = ["\"(.*?)\""]
+    let patterns: [String]
+}
+
+extension SwiftImageSearchRule {
+    init(extensions: [String]) {
+        self.extensions = extensions
+        self.patterns = ["\"(.*?)\""]
+    }
 }
 
 struct XibImageSearchRule: RegPatternSearchRule {
