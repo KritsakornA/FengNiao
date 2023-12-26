@@ -116,6 +116,7 @@ extension Path {
 public enum FengNiaoError: Error {
     case noResourceExtension
     case noFileExtension
+    case configFileNotFound
 }
 
 public struct FengNiao {
@@ -161,7 +162,7 @@ public struct FengNiao {
         }
 
         let allResources = allResourceFiles()
-        let usedNames = allUsedStringNames()
+        let usedNames = try allUsedStringNames()
         
         return FengNiao.filterUnused(from: allResources, used: usedNames).map( FileInfo.init )
     }
@@ -244,10 +245,17 @@ public struct FengNiao {
         return files
     }
     
-    func allUsedStringNames() -> Set<String> {
-        // TODO: handle error
-        let searchRulesConfig = try? configLoader?.start()
-        return usedStringNames(at: projectPath, searchRulesConfig: searchRulesConfig)
+    func allUsedStringNames() throws -> Set<String> {
+        do {
+            let searchRulesConfig = try configLoader?.start()
+            return usedStringNames(at: projectPath, searchRulesConfig: searchRulesConfig)
+        } catch {
+            if case SearchRulesConfigLoaderError.fileNotFound = error {
+                throw FengNiaoError.configFileNotFound
+            } else {
+                throw error
+            }
+        }
     }
     
     func usedStringNames(at path: Path, searchRulesConfig: SearchRuleConfig? = nil) -> Set<String> {

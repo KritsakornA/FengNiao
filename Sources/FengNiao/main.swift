@@ -147,6 +147,8 @@ do {
         print("You need to specify some resource extensions as search target. Use --resource-extensions to specify.".red.bold)
     case .noFileExtension:
         print("You need to specify some file extensions to search in. Use --file-extensions to specify.".red.bold)
+    case .configFileNotFound:
+        print("You have specified the custom search rules config path but the file does not exist in the specifed path. Please ensure that you specify the correct path to the config file.")
     }
     exit(EX_USAGE)
 }

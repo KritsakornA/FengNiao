@@ -8,8 +8,8 @@
 import Foundation
 import PathKit
 
-enum FiengNiaoFileError: Error {
-    case fileNotExist
+enum SearchRulesConfigLoaderError: Error {
+    case fileNotFound
 }
 
 protocol SearchRulesConfigLoaderProtocol {
@@ -33,7 +33,7 @@ struct SearchRulesConfigLoader: SearchRulesConfigLoaderProtocol {
     
     private func loadSearchRulesConfig(at path: Path) throws -> SearchRuleConfig {
         guard let data = fileManager.contents(atPath: path.absolute().string) else {
-            throw FiengNiaoFileError.fileNotExist
+            throw SearchRulesConfigLoaderError.fileNotFound
         }
         
         do {
