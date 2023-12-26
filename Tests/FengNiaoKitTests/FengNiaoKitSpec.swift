@@ -98,11 +98,31 @@ public let testFengNiaoKit: ((ContextType) -> Void) = {
             try expect(result) == expected
         }
         
+        $0.it("Custom Objc search rule applies") {
+            let searcher = ObjCImageSearchRule(extensions: [], patterns: [
+                "\\[UIImage customName:@\"(.*?)\"\\]"
+            ])
+            let content = "[UIImage customName:@\"hello\"]"
+            let result = searcher.search(in: content)
+            let expected: Set<String> = ["hello"]
+            try expect(result) == expected
+        }
+        
         $0.it("Swift search rule applies") {
             let searcher = SwiftImageSearchRule(extensions: ["jpg"])
             let content = "UIImage(named: \"button_image\")\nlet s = \"foo.jpg\"\n"
             let result = searcher.search(in: content)
             let expected: Set<String> = ["button_image", "foo"]
+            try expect(result) == expected
+        }
+        
+        $0.it("Custom Swift search rule applies") {
+            let searcher = SwiftImageSearchRule(extensions: [], patterns: [
+                "UIImage\\(customName: \\.(.*?)\\)"
+            ])
+            let content = "UIImage(customName: .hello)"
+            let result = searcher.search(in: content)
+            let expected: Set<String> = ["hello"]
             try expect(result) == expected
         }
 
@@ -177,7 +197,7 @@ public let testFengNiaoKit: ((ContextType) -> Void) = {
                                     excludedPaths: [],
                                     resourceExtensions: ["png", "jpg"],
                                     searchInFileExtensions: ["txt"])
-            let result = fengniao.allUsedStringNames()
+            let result = (try? fengniao.allUsedStringNames()) ?? []
             let expected: Set<String> = ["image", "another-image"]
             
             try expect(result) == expected
@@ -189,7 +209,7 @@ public let testFengNiaoKit: ((ContextType) -> Void) = {
                                     excludedPaths: [],
                                     resourceExtensions: ["png", "jpg"],
                                     searchInFileExtensions: ["swift"])
-            let result = fengniao.allUsedStringNames()
+            let result = (try? fengniao.allUsedStringNames()) ?? []
             let expected: Set<String> = ["common.login",
                                          "common.logout",
                                          "live_btn_connect",
@@ -206,7 +226,7 @@ public let testFengNiaoKit: ((ContextType) -> Void) = {
                                     excludedPaths: [],
                                     resourceExtensions: ["png", "jpg"],
                                     searchInFileExtensions: ["m", "mm"])
-            let result = fengniao.allUsedStringNames()
+            let result = (try? fengniao.allUsedStringNames()) ?? []
             let expected: Set<String> = ["info.error.memory.full.confirm",
                                          "info.error.memory.full.ios",
                                          "image",
@@ -223,7 +243,7 @@ public let testFengNiaoKit: ((ContextType) -> Void) = {
                                     excludedPaths: [],
                                     resourceExtensions: ["png"],
                                     searchInFileExtensions: ["xib", "storyboard"])
-            let result = fengniao.allUsedStringNames()
+            let result = (try? fengniao.allUsedStringNames()) ?? []
             let expected: Set<String> = ["profile_image",
                                          "bottom",
                                          "top",
@@ -240,7 +260,7 @@ public let testFengNiaoKit: ((ContextType) -> Void) = {
                                     excludedPaths: [],
                                     resourceExtensions: [],
                                     searchInFileExtensions: ["plist"])
-            let result = fengniao.allUsedStringNames()
+            let result = (try? fengniao.allUsedStringNames()) ?? []
             let expected: Set<String> = ["some_image", "some_type", "Some Image"]
             
             try expect(result) == expected
@@ -252,7 +272,7 @@ public let testFengNiaoKit: ((ContextType) -> Void) = {
                                     excludedPaths: [],
                                     resourceExtensions: [],
                                     searchInFileExtensions: ["pbxproj"])
-            let result = fengniao.allUsedStringNames()
+            let result = (try? fengniao.allUsedStringNames()) ?? []
             let expected: Set<String> = ["AppIcon", "MessagesIcon", "iMessage App Icon", "Complication"]
             
             try expect(result) == expected
@@ -264,7 +284,7 @@ public let testFengNiaoKit: ((ContextType) -> Void) = {
                                     excludedPaths: [],
                                     resourceExtensions: ["png", "jpg"],
                                     searchInFileExtensions: ["m", "xib"])
-            let result = fengniao.allUsedStringNames()
+            let result = (try? fengniao.allUsedStringNames()) ?? []
             let expected: Set<String> = ["profile_image",
                                          "bottom",
                                          "top",
@@ -281,7 +301,7 @@ public let testFengNiaoKit: ((ContextType) -> Void) = {
                                     excludedPaths: ["SubFolder2"],
                                     resourceExtensions: ["png", "jpg"],
                                     searchInFileExtensions: ["m", "xib"])
-            let result = fengniao.allUsedStringNames()
+            let result = (try? fengniao.allUsedStringNames()) ?? []
             let expected: Set<String> = ["info.error.memory.full.confirm",
                                          "info.error.memory.full.ios",
                                          "image"]

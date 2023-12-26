@@ -26,7 +26,7 @@ import Foundation
 import PathKit
 import Rainbow
 
-enum FileType {
+enum FileType: Codable {
     case swift
     case objc
     case xib
@@ -44,13 +44,37 @@ enum FileType {
         }
     }
     
-    func searchRules(extensions: [String]) -> [FileSearchRule] {
+    func searchRules(extensions: [String], patterns: [String]? = nil) -> [FileSearchRule] {
         switch self {
-        case .swift: return [SwiftImageSearchRule(extensions: extensions)]
-        case .objc: return [ObjCImageSearchRule(extensions: extensions)]
-        case .xib: return [XibImageSearchRule()]
-        case .plist: return [PlistImageSearchRule(extensions: extensions)]
-        case .pbxproj: return [PbxprojImageSearchRule(extensions: extensions)]
+        case .swift:
+            if let patterns = patterns {
+                return [SwiftImageSearchRule(extensions: extensions, patterns: patterns)]
+            } else {
+                return [SwiftImageSearchRule(extensions: extensions)]
+            }
+        case .objc:
+            if let patterns = patterns {
+                return [ObjCImageSearchRule(extensions: extensions, patterns: patterns)]
+            } else {
+                return [ObjCImageSearchRule(extensions: extensions)]
+            }
+        case .xib:
+            return [XibImageSearchRule()]
+        case .plist:
+            return [PlistImageSearchRule(extensions: extensions)]
+        case .pbxproj:
+            return [PbxprojImageSearchRule(extensions: extensions)]
+        }
+    }
+}
+
+extension FileType {
+    var isCustomizable: Bool {
+        switch self {
+        case .objc, .swift:
+            return true
+        default:
+            return false
         }
     }
 }
@@ -92,6 +116,7 @@ extension Path {
 public enum FengNiaoError: Error {
     case noResourceExtension
     case noFileExtension
+    case configFileNotFound
 }
 
 public struct FengNiao {
@@ -100,18 +125,32 @@ public struct FengNiao {
     let excludedPaths: [Path]
     let resourceExtensions: [String]
     let searchInFileExtensions: [String]
+    let searchRulesConfigPath: Path?
     
     let regularDirExtensions = ["imageset", "launchimage", "appiconset", "stickersiconset", "complicationset", "bundle"]
     var nonDirExtensions: [String] {
         return resourceExtensions.filter { !regularDirExtensions.contains($0) }
     }
+    private let configLoader: SearchRulesConfigLoaderProtocol?
     
-    public init(projectPath: String, excludedPaths: [String], resourceExtensions: [String], searchInFileExtensions: [String]) {
+    public init(projectPath: String,
+                excludedPaths: [String],
+                resourceExtensions: [String],
+                searchInFileExtensions: [String],
+                searchRulesConfigPath: String? = nil) {
         let path = Path(projectPath).absolute()
         self.projectPath = path
         self.excludedPaths = excludedPaths.map { path + Path($0) }
         self.resourceExtensions = resourceExtensions
         self.searchInFileExtensions = searchInFileExtensions
+        if let configPathString = searchRulesConfigPath {
+            let configPath = Path(configPathString).absolute()
+            self.searchRulesConfigPath = configPath
+            self.configLoader = SearchRulesConfigLoader(path: configPath)
+        } else {
+            self.searchRulesConfigPath = nil
+            self.configLoader = nil
+        }
     }
     
     public func unusedFiles() throws -> [FileInfo] {
@@ -123,7 +162,7 @@ public struct FengNiao {
         }
 
         let allResources = allResourceFiles()
-        let usedNames = allUsedStringNames()
+        let usedNames = try allUsedStringNames()
         
         return FengNiao.filterUnused(from: allResources, used: usedNames).map( FileInfo.init )
     }
@@ -206,11 +245,20 @@ public struct FengNiao {
         return files
     }
     
-    func allUsedStringNames() -> Set<String> {
-        return usedStringNames(at: projectPath)
+    func allUsedStringNames() throws -> Set<String> {
+        do {
+            let searchRulesConfig = try configLoader?.start()
+            return usedStringNames(at: projectPath, searchRulesConfig: searchRulesConfig)
+        } catch {
+            if case SearchRulesConfigLoaderError.fileNotFound = error {
+                throw FengNiaoError.configFileNotFound
+            } else {
+                throw error
+            }
+        }
     }
     
-    func usedStringNames(at path: Path) -> Set<String> {
+    func usedStringNames(at path: Path, searchRulesConfig: SearchRuleConfig? = nil) -> Set<String> {
         guard let subPaths = try? path.children() else {
             print("Failed to get contents in path: \(path)".red)
             return []
@@ -227,7 +275,7 @@ public struct FengNiao {
             }
             
             if subPath.isDirectory {
-                result.append(contentsOf: usedStringNames(at: subPath))
+                result.append(contentsOf: usedStringNames(at: subPath, searchRulesConfig: searchRulesConfig))
             } else {
                 let fileExt = subPath.extension ?? ""
                 guard searchInFileExtensions.contains(fileExt) else {
@@ -235,9 +283,16 @@ public struct FengNiao {
                 }
                 
                 let fileType = FileType(ext: fileExt)
-                
-                let searchRules = fileType?.searchRules(extensions: resourceExtensions) ??
-                                  [PlainImageSearchRule(extensions: resourceExtensions)]
+                var searchRules: [FileSearchRule] {
+                    guard let fileType = fileType else {
+                        return [PlainImageSearchRule(extensions: resourceExtensions)]
+                    }
+                    
+                    let patterns = searchRulesConfig?.getRule(for: fileType)?.patterns
+                    return fileType.searchRules(extensions: resourceExtensions,
+                                                patterns: patterns)
+
+                }
                 
                 let content = (try? subPath.read()) ?? ""
                 result.append(contentsOf: searchRules.flatMap {
