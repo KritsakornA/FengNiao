@@ -131,7 +131,8 @@ let fileExtensions = fileExtOption.value ?? ["h", "m", "mm", "swift", "xib", "st
 let fengNiao = FengNiao(projectPath: projectPath,
                         excludedPaths: excludePaths,
                         resourceExtensions: resourceExtentions,
-                        searchInFileExtensions: fileExtensions)
+                        searchInFileExtensions: fileExtensions,
+                        searchRulesConfigPath: searchRulesConfigPath)
 
 let unusedFiles: [FileInfo]
 do {
